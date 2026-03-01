@@ -80,34 +80,36 @@ function Register() {
           </div>
         )}
 
-        <div className="form-group">
-          <label className="form-label">
-            <FiUser size={16} />
-            Nombre
-          </label>
-          <input 
-            type="text" 
-            className="form-input" 
-            placeholder="Juan" 
-            value={formData.first_name} 
-            onChange={(e) => setFormData({ ...formData, first_name: e.target.value })} 
-            required 
-          />
-        </div>
+        <div className="auth-name-row">
+          <div className="form-group">
+            <label className="form-label">
+              <FiUser size={16} />
+              Nombre
+            </label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Juan"
+              value={formData.first_name}
+              onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+              required
+            />
+          </div>
 
-        <div className="form-group">
-          <label className="form-label">
-            <FiUser size={16} />
-            Apellidos
-          </label>
-          <input 
-            type="text" 
-            className="form-input" 
-            placeholder="Pérez" 
-            value={formData.last_name} 
-            onChange={(e) => setFormData({ ...formData, last_name: e.target.value })} 
-            required 
-          />
+          <div className="form-group">
+            <label className="form-label">
+              <FiUser size={16} />
+              Apellidos
+            </label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Pérez"
+              value={formData.last_name}
+              onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+              required
+            />
+          </div>
         </div>
 
         <div className="form-group">

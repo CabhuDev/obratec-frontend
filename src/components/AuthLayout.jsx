@@ -1,27 +1,18 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiCheck, FiFileText, FiUsers, FiBarChart2, FiSmartphone, FiShield } from 'react-icons/fi';
 import logoImg from '../assets/logo.PNG';
+import heroBgImg from '../assets/hero-bg.webp';
 
-/**
- * AuthLayout - Layout split profesional para páginas de autenticación
- * Inspirado en el diseño del login antiguo pero mejorado
- */
 function AuthLayout({ children, title, subtitle }) {
-  const features = [
-    { icon: FiFileText, text: 'Gestión integral de obras' },
-    { icon: FiBarChart2, text: 'Informes en tiempo real' },
-    { icon: FiUsers, text: 'Equipo colaborativo' },
-    { icon: FiSmartphone, text: 'Acceso desde cualquier dispositivo' },
-    { icon: FiShield, text: 'Seguridad garantizada' },
-  ];
-
   return (
     <div className="auth-split-body">
       <div className="auth-split-container">
-        {/* Lado Izquierdo - Branding */}
-        <div className="auth-brand-side">
-          <motion.div 
+        {/* Lado Izquierdo - Branding con imagen */}
+        <div
+          className="auth-brand-side"
+          style={{ backgroundImage: `url(${heroBgImg})` }}
+        >
+          <motion.div
             className="auth-brand-content"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -35,8 +26,8 @@ function AuthLayout({ children, title, subtitle }) {
             >
               <img src={logoImg} alt="OBRATEC" style={{ width: '82px', height: '82px', objectFit: 'contain' }} />
             </motion.div>
-            
-            <motion.p 
+
+            <motion.p
               className="auth-brand-subtitle"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -45,19 +36,23 @@ function AuthLayout({ children, title, subtitle }) {
               Sistema de Gestión de Informes de Construcción
             </motion.p>
 
-            <ul className="auth-brand-features">
-              {features.map((feature, index) => (
-                <motion.li
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + (index * 0.1), duration: 0.4 }}
-                >
-                  <feature.icon />
-                  <span>{feature.text}</span>
-                </motion.li>
-              ))}
-            </ul>
+            <motion.div
+              className="auth-brand-quote"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+            >
+              <p className="auth-brand-quote-text">
+                "OBRATEC ha transformado cómo gestionamos nuestros informes. Ahorramos 5 horas semanales por proyecto."
+              </p>
+              <div className="auth-brand-quote-author">
+                <div className="auth-brand-quote-avatar">CM</div>
+                <div>
+                  <strong>Carlos Martínez</strong>
+                  <span>Jefe de Obra · Constructora ABC</span>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         </div>
 

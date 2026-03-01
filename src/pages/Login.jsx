@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiEye, FiEyeOff, FiMail, FiLock, FiLogIn } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiMail, FiLock, FiLogIn, FiAlertCircle } from 'react-icons/fi';
 import { useAuth } from '../App';
 import AuthLayout from '../components/AuthLayout';
 
@@ -36,7 +36,7 @@ function Login() {
       <form className="auth-form" onSubmit={handleSubmit}>
         {error && (
           <div className="auth-alert auth-alert--error">
-            <FiMail size={18} />
+            <FiAlertCircle size={18} />
             <span>{error}</span>
           </div>
         )}
@@ -118,10 +118,6 @@ function Login() {
               ¿Olvidaste tu contraseña?
             </Link>
           </p>
-          
-          <div className="auth-divider">
-            <span>¿No tienes cuenta?</span>
-          </div>
           
           <p className="auth-footer-link" style={{ marginBottom: 0 }}>
             ¿No tienes cuenta?{' '}

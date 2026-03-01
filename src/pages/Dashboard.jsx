@@ -213,37 +213,56 @@ function Dashboard() {
         </div>
 
         {recentReports.length > 0 ? (
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Proyecto</th>
-                  <th>Fecha</th>
-                  <th>Avance</th>
-                  <th>Estado</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentReports.map((report) => (
-                  <tr key={report.id}>
-                    <td>
-                      <strong>{report.proyecto}</strong>
-                      {report.titulo && <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{report.titulo}</div>}
-                    </td>
-                    <td>{formatDate(report.fecha)}</td>
-                    <td>{report.avance}%</td>
-                    <td>{getStatusBadge(report.status)}</td>
-                    <td>
-                      <Link to={`/app/reports/${report.id}`} className="btn btn-outline btn-sm">
-                        Ver
-                      </Link>
-                    </td>
+          <>
+            {/* Desktop table */}
+            <div className="table-container reports-desktop-table">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Proyecto</th>
+                    <th>Fecha</th>
+                    <th>Avance</th>
+                    <th>Estado</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {recentReports.map((report) => (
+                    <tr key={report.id}>
+                      <td>
+                        <strong>{report.proyecto}</strong>
+                        {report.titulo && <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{report.titulo}</div>}
+                      </td>
+                      <td>{formatDate(report.fecha)}</td>
+                      <td>{report.avance}%</td>
+                      <td>{getStatusBadge(report.status)}</td>
+                      <td>
+                        <Link to={`/app/reports/${report.id}`} className="btn btn-outline btn-sm">Ver</Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile card list */}
+            <div className="reports-mobile-list">
+              {recentReports.map((report) => (
+                <div key={report.id} className="report-mobile-card">
+                  <div className="report-mobile-main">
+                    <strong>{report.proyecto}</strong>
+                    {getStatusBadge(report.status)}
+                  </div>
+                  <div className="report-mobile-meta">
+                    {formatDate(report.fecha)} · {report.avance}% avance
+                  </div>
+                  <Link to={`/app/reports/${report.id}`} className="btn btn-outline btn-sm" style={{ marginLeft: 'auto' }}>
+                    Ver
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </>
         ) : (
           <div className="empty-state">
             <div className="empty-state-icon">📋</div>

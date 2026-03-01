@@ -328,50 +328,74 @@ function Billing() {
         </div>
 
         {invoices.length > 0 ? (
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Período</th>
-                  <th>Importe</th>
-                  <th>Estado</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map(inv => (
-                  <tr key={inv.id}>
-                    <td style={{ fontSize: '0.9rem' }}>{formatDate(inv.created_at)}</td>
-                    <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                      {inv.period_start && inv.period_end
-                        ? `${formatDate(inv.period_start)} — ${formatDate(inv.period_end)}`
-                        : '—'}
-                    </td>
-                    <td style={{ fontWeight: 600, color: 'var(--color-secondary)' }}>
-                      {formatAmount(inv.amount, inv.currency)}
-                    </td>
-                    <td><StatusBadge status={inv.status} /></td>
-                    <td>
-                      {inv.stripe_invoice_url ? (
-                        <a
-                          href={inv.stripe_invoice_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-outline btn-sm"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                        >
-                          <FiExternalLink size={13} /> Ver
-                        </a>
-                      ) : (
-                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>—</span>
-                      )}
-                    </td>
+          <>
+            {/* Desktop table */}
+            <div className="table-container invoices-desktop-table">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Período</th>
+                    <th>Importe</th>
+                    <th>Estado</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {invoices.map(inv => (
+                    <tr key={inv.id}>
+                      <td style={{ fontSize: '0.9rem' }}>{formatDate(inv.created_at)}</td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        {inv.period_start && inv.period_end
+                          ? `${formatDate(inv.period_start)} — ${formatDate(inv.period_end)}`
+                          : '—'}
+                      </td>
+                      <td style={{ fontWeight: 600, color: 'var(--color-secondary)' }}>
+                        {formatAmount(inv.amount, inv.currency)}
+                      </td>
+                      <td><StatusBadge status={inv.status} /></td>
+                      <td>
+                        {inv.stripe_invoice_url ? (
+                          <a href={inv.stripe_invoice_url} target="_blank" rel="noopener noreferrer"
+                            className="btn btn-outline btn-sm"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <FiExternalLink size={13} /> Ver
+                          </a>
+                        ) : (
+                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile card list */}
+            <div className="invoices-mobile-list">
+              {invoices.map(inv => (
+                <div key={inv.id} className="invoice-mobile-card">
+                  <div className="invoice-mobile-main">
+                    <StatusBadge status={inv.status} />
+                    <span className="invoice-mobile-amount">{formatAmount(inv.amount, inv.currency)}</span>
+                  </div>
+                  <div className="invoice-mobile-meta">
+                    {formatDate(inv.created_at)}
+                    {inv.period_start && inv.period_end && (
+                      <> · {formatDate(inv.period_start)} — {formatDate(inv.period_end)}</>
+                    )}
+                  </div>
+                  {inv.stripe_invoice_url && (
+                    <a href={inv.stripe_invoice_url} target="_blank" rel="noopener noreferrer"
+                      className="btn btn-outline btn-sm"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginLeft: 'auto' }}>
+                      <FiExternalLink size={13} /> Ver
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
         ) : (
           <div style={{ textAlign: 'center', padding: 'var(--spacing-xl)', color: 'var(--text-secondary)' }}>
             <FiFileText style={{ fontSize: '2rem', marginBottom: 'var(--spacing-sm)', opacity: 0.4 }} />

@@ -81,6 +81,7 @@
 html {
   font-size: 16px;
   line-height: 1.5;
+  overflow-x: hidden;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -89,6 +90,7 @@ body {
   font-size: 1rem;
   color: var(--text-primary);
   background: #F8F9FA;
+  overflow-x: hidden;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -1202,6 +1204,170 @@ textarea.form-input {
   animation: spin 1s linear infinite;
 }
 
+/* =============== CHATBOT LAYOUT =============== */
+.chat-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1rem;
+  height: calc(100vh - 210px);
+  min-height: 400px;
+}
+
+.chat-conv-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chat-area-panel {
+  min-height: 0;
+}
+
+.chat-toggle-convs {
+  display: none;
+}
+
+.chat-close-mobile {
+  display: none;
+}
+
+.chat-mobile-overlay {
+  display: none;
+}
+
+.chat-provider-badge {
+  display: inline-flex !important;
+}
+
+@media (max-width: 768px) {
+  .chat-layout {
+    grid-template-columns: 1fr;
+    height: calc(100vh - 80px - 140px);
+    min-height: 300px;
+  }
+
+  .chat-toggle-convs {
+    display: inline-flex;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .chat-toggle-convs span {
+    display: none;
+  }
+
+  .chat-close-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0.4rem;
+    border-radius: var(--radius-sm);
+    font-size: 1.1rem;
+  }
+
+  /* Conversation panel hidden by default on mobile */
+  .chat-conv-wrapper {
+    display: none;
+  }
+
+  /* When toggled open, slides in as fixed overlay */
+  .chat-conv-wrapper.mobile-open {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 80px;
+    z-index: 500;
+    background: white;
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.18);
+  }
+
+  .chat-conv-wrapper.mobile-open .chat-conversations-panel {
+    flex: 1;
+    border-radius: 0;
+    border: none;
+  }
+
+  .chat-mobile-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 499;
+  }
+}
+
+/* =============== MOBILE CARD LISTS (replaces tables) =============== */
+.reports-desktop-table { display: block; }
+.reports-mobile-list   { display: none; }
+.invoices-desktop-table { display: block; }
+.invoices-mobile-list   { display: none; }
+
+@media (max-width: 768px) {
+  .reports-desktop-table { display: none; }
+  .reports-mobile-list   { display: flex; flex-direction: column; gap: 0.5rem; }
+  .invoices-desktop-table { display: none; }
+  .invoices-mobile-list   { display: flex; flex-direction: column; gap: 0.5rem; }
+}
+
+.report-mobile-card,
+.invoice-mobile-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-light-gray);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+  background: var(--color-white);
+}
+
+.report-mobile-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.report-mobile-main strong {
+  font-size: 0.9rem;
+  color: var(--color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.report-mobile-meta,
+.invoice-mobile-meta {
+  width: 100%;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.invoice-mobile-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.invoice-mobile-amount {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-secondary);
+  margin-left: auto;
+}
+
 /* =============== PRINT STYLES =============== */
 @media print {
   .sidebar,
@@ -1244,9 +1410,11 @@ textarea.form-input {
   width: 100%;
 }
 
-/* Brand Side - Left - No gradient to avoid banner blindness */
+/* Brand Side - Left */
 .auth-brand-side {
   background: var(--color-secondary);
+  background-size: cover;
+  background-position: center;
   color: white;
   display: flex;
   align-items: center;
@@ -1256,18 +1424,14 @@ textarea.form-input {
   overflow: hidden;
 }
 
-/* Subtle geometric pattern instead of gradient - using client's original colors */
+/* Dark overlay sobre la imagen de fondo */
 .auth-brand-side::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    radial-gradient(circle at 10% 20%, rgba(247, 155, 114, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 90% 80%, rgba(59, 140, 136, 0.1) 0%, transparent 50%);
+  inset: 0;
+  background: rgba(42, 71, 89, 0.78);
   pointer-events: none;
+  z-index: 1;
 }
 
 @keyframes authBgFloat {
@@ -1337,6 +1501,65 @@ textarea.form-input {
   height: 20px;
   color: var(--color-primary);
   flex-shrink: 0;
+}
+
+/* Testimonial quote card en brand side */
+.auth-brand-quote {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(6px);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: var(--spacing-lg);
+  text-align: left;
+  margin-top: var(--spacing-xl);
+}
+
+.auth-brand-quote-text {
+  font-size: 0.975rem;
+  color: rgba(255, 255, 255, 0.95);
+  font-style: italic;
+  line-height: 1.6;
+  margin-bottom: var(--spacing-md);
+}
+
+.auth-brand-quote-author {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.auth-brand-quote-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.auth-brand-quote-author strong {
+  display: block;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.auth-brand-quote-author span {
+  display: block;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.775rem;
+}
+
+/* Register: nombre + apellidos en 2 columnas */
+.auth-name-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
 }
 
 /* Form Side - Right */
@@ -1622,76 +1845,90 @@ textarea.form-input {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     min-height: 100dvh;
-    height: 100dvh;
+    height: auto;
   }
-  
+
   .auth-split-container {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
     min-height: 100dvh;
-    height: 100dvh;
+    height: auto;
   }
-  
+
+  /* Compact header: logo + tagline in a horizontal row */
   .auth-brand-side {
-    padding: var(--spacing-md);
+    padding: 1rem 1.25rem;
     min-height: auto;
+    height: auto;
     position: relative;
-    overflow: visible;
+    overflow: hidden;
+    align-items: flex-start;
+    justify-content: flex-start;
   }
-  
+
+  .auth-brand-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    text-align: left;
+    max-width: 100%;
+  }
+
   .auth-brand-logo {
-    width: 50px;
-    height: 50px;
-    margin-bottom: var(--spacing-sm);
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    margin: 0;
+    animation: none;
   }
-  
-  .auth-brand-logo span {
-    font-size: 1.75rem !important;
-  }
-  
-  .auth-brand-title {
-    font-size: 1.5rem;
-    margin-bottom: var(--spacing-xs);
-  }
-  
+
   .auth-brand-subtitle {
-    font-size: 0.85rem;
-    margin-bottom: var(--spacing-sm);
+    font-size: 0.82rem;
+    margin-bottom: 0;
+    line-height: 1.4;
   }
-  
+
+  /* Hide decorative elements on mobile */
+  .auth-brand-quote,
   .auth-brand-features {
     display: none;
   }
-  
+
+  /* Form side fills remaining space and scrolls */
   .auth-form-side {
     padding: var(--spacing-lg) var(--spacing-md);
-    min-height: auto;
+    min-height: calc(100dvh - 90px);
     height: auto;
     overflow-y: auto;
     overflow-x: hidden;
   }
-  
+
   .auth-form-side::before {
     display: none;
   }
-  
+
   .auth-form-container {
     max-width: 100%;
     padding-bottom: var(--spacing-xl);
   }
-  
+
   .auth-page-title {
     font-size: 1.5rem;
   }
-  
+
   .auth-form {
     gap: var(--spacing-md);
   }
-  
+
+  .auth-name-row {
+    grid-template-columns: 1fr;
+  }
+
   .form-group {
     margin-bottom: var(--spacing-md);
   }
-  
+
   .btn-auth {
     padding: var(--spacing-md) var(--spacing-lg);
   }

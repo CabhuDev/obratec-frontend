@@ -12,7 +12,9 @@
   border-top: 1px solid rgba(42, 71, 89, 0.1);
   display: none;
   justify-content: space-around;
-  padding: 0.5rem 0;
+  align-items: stretch;
+  padding: 0.25rem 0;
+  padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
   z-index: 999;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
 }
@@ -22,24 +24,33 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0;
   color: #94A3B8;
   text-decoration: none;
   transition: all 0.2s;
   position: relative;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .mobile-nav-icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.25rem;
+  font-size: 1.35rem;
+  margin-bottom: 0.2rem;
   transition: all 0.3s;
+  flex-shrink: 0;
 }
 
 .mobile-nav-label {
-  font-size: 0.75rem;
+  font-size: 0.6rem;
   font-weight: 500;
   transition: all 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  padding: 0 2px;
+  line-height: 1.2;
 }
 
 .mobile-nav-item.active {
