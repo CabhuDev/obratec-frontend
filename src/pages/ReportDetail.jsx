@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { reportsAPI, organizationsAPI, mediaUrl } from '../services/api';
 import { FiDownload, FiTrash2, FiEdit, FiArrowLeft, FiUpload, FiSend, FiX, FiCheck, FiImage, FiMic } from 'react-icons/fi';
+import AIReportSections from '../components/AIReportSections';
 
 function ReportDetail() {
   const { id } = useParams();
@@ -415,6 +416,13 @@ function ReportDetail() {
               </div>
             )}
           </div>
+
+          {/* AI Report Sections */}
+          <AIReportSections
+            reportId={id}
+            reportType={report.report_type}
+            onContentUpdate={fetchReport}
+          />
         </div>
 
         {/* Sidebar Info */}

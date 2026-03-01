@@ -90,7 +90,6 @@ body {
   font-size: 1rem;
   color: var(--text-primary);
   background: #F8F9FA;
-  overflow-x: hidden;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

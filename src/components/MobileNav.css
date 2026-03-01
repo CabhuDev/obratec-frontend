@@ -93,16 +93,16 @@
   }
 }
 
-/* Prevent overscroll on mobile */
+/* Prevent overscroll inside the app shell (NOT landing/auth) */
 @media (max-width: 768px) {
-  body {
+  body.app-shell {
+    overflow: hidden;
     position: fixed;
     width: 100%;
-    overflow: hidden;
   }
 
-  .main-content {
-    height: calc(100vh - 80px);
+  body.app-shell .main-content {
+    height: calc(100svh - 80px);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }

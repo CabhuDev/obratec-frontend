@@ -21,6 +21,12 @@ function Sidebar() {
   const navigate = useNavigate();
   const [apiStatus, setApiStatus] = useState(null); // null=comprobando, {ok, version}
 
+  // Marca el body para que MobileNav.css scope sus reglas solo dentro de la app
+  useEffect(() => {
+    document.body.classList.add('app-shell');
+    return () => document.body.classList.remove('app-shell');
+  }, []);
+
   useEffect(() => {
     const check = async () => {
       try {

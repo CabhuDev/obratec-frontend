@@ -88,6 +88,9 @@ export const reportsAPI = {
   publish: (id) => api.post(`/reports/${id}/publish`),
   getWorkflowStatus: (id) => api.get(`/reports/${id}/workflow-status`),
   deletePhoto: (reportId, photoId) => api.delete(`/reports/${reportId}/photos/${photoId}`),
+  generateAI: (id) => api.post(`/reports/${id}/generate-ai`),
+  getAIContent: (id) => api.get(`/reports/${id}/ai-content`),
+  updateAIContent: (id, sections) => api.put(`/reports/${id}/ai-content`, { sections }),
 };
 
 // Chatbot API
