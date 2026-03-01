@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+
+# Node.js dependencies
+node_modules/
+
+# Build output
+dist/
+coverage/
+
+# Environment variables
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
+node_modules/
+
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/
+
+# Others
+old_docs/
+scripts/*.log
+.DS_Store
+

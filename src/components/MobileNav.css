@@ -1,0 +1,98 @@
+/* ================================================
+   MOBILE BOTTOM NAVIGATION
+   Modern mobile-first navigation inspired by menu.jpg
+   ================================================ */
+
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid rgba(42, 71, 89, 0.1);
+  display: none;
+  justify-content: space-around;
+  padding: 0.5rem 0;
+  z-index: 999;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  color: #94A3B8;
+  text-decoration: none;
+  transition: all 0.2s;
+  position: relative;
+  flex: 1;
+}
+
+.mobile-nav-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+  transition: all 0.3s;
+}
+
+.mobile-nav-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.mobile-nav-item.active {
+  color: var(--color-primary);
+}
+
+.mobile-nav-item.active .mobile-nav-icon {
+  transform: translateY(-2px);
+}
+
+.mobile-nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  background: var(--color-primary);
+  border-radius: 0 0 3px 3px;
+}
+
+/* Show mobile nav on small screens */
+@media (max-width: 768px) {
+  .mobile-nav {
+    display: flex;
+  }
+
+  .sidebar {
+    display: none !important;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    padding-bottom: 80px;
+  }
+
+  .app-container {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Prevent overscroll on mobile */
+@media (max-width: 768px) {
+  body {
+    position: fixed;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .main-content {
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
