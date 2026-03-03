@@ -270,6 +270,11 @@ a:hover {
   margin: 0;
 }
 
+/* Responsive Grid Utilities */
+.grid-2col    { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg); }
+.grid-sidebar { display: grid; grid-template-columns: 240px 1fr; gap: var(--spacing-xl); }
+.grid-main    { display: grid; grid-template-columns: 2fr 1fr; gap: var(--spacing-lg); }
+
 /* Stats Grid */
 .stats-grid {
   display: grid;
@@ -598,6 +603,11 @@ textarea.form-input {
   to { transform: rotate(360deg); }
 }
 
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 /* Empty State */
 .empty-state {
   text-align: center;
@@ -676,16 +686,18 @@ textarea.form-input {
 }
 
 @media (max-width: 768px) {
+  .grid-2col, .grid-sidebar, .grid-main { grid-template-columns: 1fr; }
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .dashboard-header {
     flex-direction: column;
     gap: var(--spacing-md);
     align-items: flex-start;
   }
-  
+
   .user-menu {
     width: 100%;
     justify-content: space-between;
@@ -1201,6 +1213,15 @@ textarea.form-input {
 /* Spinning icon for reindex */
 .spin-icon {
   animation: spin 1s linear infinite;
+}
+
+/* Knowledge base responsive */
+.kb-desktop-table { display: block; }
+.kb-mobile-list   { display: none; }
+
+@media (max-width: 768px) {
+  .kb-desktop-table { display: none; }
+  .kb-mobile-list   { display: block; }
 }
 
 /* =============== CHATBOT LAYOUT =============== */

@@ -230,7 +230,7 @@ function Settings() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '1.5rem' }}>
+      <div className="grid-sidebar">
         {/* Sidebar */}
         <div className="card" style={{ padding: '0.5rem' }}>
           {tabs.map(tab => (
@@ -384,7 +384,20 @@ function Settings() {
                   Mensual
                 </span>
                 <div
-                  onClick={() => setBillingCycle(c => c === 'monthly' ? 'yearly' : 'monthly')}
+                  onClick={async () => {
+                    const newCycle = billingCycle === 'monthly' ? 'yearly' : 'monthly';
+                    setBillingCycle(newCycle);
+                    // If switching to yearly and has active subscription, call upgrade API
+                    if (newCycle === 'yearly' && subscription?.status === 'active') {
+                      try {
+                        await billingAPI.upgradeToAnnual();
+                        fetchSubscription();
+                      } catch (e) {
+                        alert(e.response?.data?.detail || 'Error al cambiar a anual');
+                        setBillingCycle('monthly');
+                      }
+                    }
+                  }}
                   style={{
                     width: '48px', height: '26px', borderRadius: '13px', cursor: 'pointer',
                     background: billingCycle === 'yearly' ? 'var(--color-tertiary)' : 'var(--color-light-gray)',

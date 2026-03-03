@@ -1,40 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { reportsAPI, organizationsAPI } from '../services/api';
-import { FiPlus, FiAlertCircle } from 'react-icons/fi';
-
-const DYNAMIC_FIELDS_CONFIG = {
-  visita: [
-    { key: 'fecha_visita', label: 'Fecha de Visita', type: 'date' },
-    { key: 'hora_llegada', label: 'Hora de Llegada', type: 'time' },
-    { key: 'hora_salida', label: 'Hora de Salida', type: 'time' },
-    { key: 'responsable', label: 'Responsable', type: 'text' },
-    { key: 'hallazgos', label: 'Hallazgos', type: 'textarea' },
-    { key: 'recomendaciones', label: 'Recomendaciones', type: 'textarea' },
-  ],
-  reunion: [
-    { key: 'hora_inicio', label: 'Hora de Inicio', type: 'time' },
-    { key: 'hora_fin', label: 'Hora de Fin', type: 'time' },
-    { key: 'lugar', label: 'Lugar', type: 'text' },
-    { key: 'asistentes', label: 'Asistentes', type: 'textarea' },
-    { key: 'orden_dia', label: 'Orden del Día', type: 'textarea' },
-    { key: 'acuerdos', label: 'Acuerdos', type: 'textarea' },
-    { key: 'prox_reunion', label: 'Próxima Reunión', type: 'date' },
-  ],
-  seguridad: [
-    { key: 'zona', label: 'Zona', type: 'text' },
-    { key: 'medidas_seguridad', label: 'Medidas de Seguridad', type: 'textarea' },
-    { key: 'incidentes', label: 'Incidentes', type: 'textarea' },
-    { key: 'epis_utilizados', label: 'EPIs Utilizados', type: 'textarea' },
-    { key: 'cumplimiento_normativa', label: 'Cumplimiento Normativa', type: 'textarea' },
-  ],
-  calidad: [
-    { key: 'elemento_controlado', label: 'Elemento Controlado', type: 'text' },
-    { key: 'criterios_aceptacion', label: 'Criterios de Aceptación', type: 'textarea' },
-    { key: 'resultados', label: 'Resultados', type: 'textarea' },
-    { key: 'conformidad', label: 'Conformidad', type: 'text' },
-  ],
-};
+import { FiPlus, FiAlertCircle, FiX } from 'react-icons/fi';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 function CreateReport() {
   const navigate = useNavigate();
@@ -48,20 +16,43 @@ function CreateReport() {
   const [orgHasLogo, setOrgHasLogo] = useState(false);
   const [includeLogo, setIncludeLogo] = useState(true);
 
+  // Dynamic types from API
+  const [reportTypes, setReportTypes] = useState([]);
+  const [fieldDefinitions, setFieldDefinitions] = useState({});
+  const [typesLoading, setTypesLoading] = useState(true);
+
   useEffect(() => {
     organizationsAPI.get().then(res => {
       setOrgHasLogo(!!res.data.logo_url);
     }).catch(() => {});
   }, []);
 
-  const reportTypes = [
-    { value: 'obra', label: 'Informe de Obra' },
-    { value: 'visita', label: 'Informe de Visita' },
-    { value: 'reunion', label: 'Acta de Reunión' },
-    { value: 'seguridad', label: 'Informe de Seguridad' },
-    { value: 'calidad', label: 'Control de Calidad' },
-    { value: 'personalizado', label: 'Informe Personalizado' },
-  ];
+  useEffect(() => {
+    const fetchTypes = async () => {
+      try {
+        const res = await reportsAPI.getTypes();
+        const data = res.data;
+        setReportTypes(data.types || []);
+        setFieldDefinitions(data.fields || {});
+        if (data.types?.length > 0) {
+          setReportType(data.types[0].value);
+        }
+      } catch (e) {
+        // Fallback to basic types if endpoint fails
+        setReportTypes([
+          { value: 'obra', label: 'Obra' },
+          { value: 'visita', label: 'Visita' },
+          { value: 'reunion', label: 'Reunion' },
+          { value: 'seguridad', label: 'Seguridad' },
+          { value: 'calidad', label: 'Calidad' },
+          { value: 'personalizado', label: 'Personalizado' },
+        ]);
+      } finally {
+        setTypesLoading(false);
+      }
+    };
+    fetchTypes();
+  }, []);
 
   const handleTypeChange = (newType) => {
     setReportType(newType);
@@ -70,6 +61,18 @@ function CreateReport() {
 
   const handleDynamicFieldChange = (key, value) => {
     setDynamicFields(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Handle array field (chips/tags)
+  const handleArrayFieldAdd = (key, value) => {
+    if (!value.trim()) return;
+    const current = dynamicFields[key] || [];
+    setDynamicFields(prev => ({ ...prev, [key]: [...current, value.trim()] }));
+  };
+
+  const handleArrayFieldRemove = (key, index) => {
+    const current = dynamicFields[key] || [];
+    setDynamicFields(prev => ({ ...prev, [key]: current.filter((_, i) => i !== index) }));
   };
 
   const handleSubmit = async (e) => {
@@ -99,7 +102,168 @@ function CreateReport() {
     }
   };
 
-  const currentDynamicFields = DYNAMIC_FIELDS_CONFIG[reportType] || [];
+  // Get dynamic field definitions for current report type
+  const currentFieldDefs = fieldDefinitions[reportType] || {};
+  const currentDynamicFields = Object.entries(currentFieldDefs);
+
+  const renderDynamicField = (key, fieldDef) => {
+    const { type, label, required, options, min, max } = fieldDef;
+    const value = dynamicFields[key];
+
+    switch (type) {
+      case 'select':
+        return (
+          <select
+            id={key}
+            className="form-input"
+            value={value || ''}
+            onChange={(e) => handleDynamicFieldChange(key, e.target.value)}
+            required={required}
+          >
+            <option value="">Seleccionar...</option>
+            {(options || []).map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+        );
+
+      case 'array':
+        return (
+          <div>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <input
+                id={key}
+                className="form-input"
+                placeholder={`Añadir ${label.toLowerCase()}...`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleArrayFieldAdd(key, e.target.value);
+                    e.target.value = '';
+                  }
+                }}
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => {
+                  const input = document.getElementById(key);
+                  if (input) {
+                    handleArrayFieldAdd(key, input.value);
+                    input.value = '';
+                  }
+                }}
+              >
+                <FiPlus />
+              </button>
+            </div>
+            {(value || []).length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {(value || []).map((item, i) => (
+                  <span key={i} className="badge badge-info" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem' }}>
+                    {item}
+                    <button
+                      type="button"
+                      onClick={() => handleArrayFieldRemove(key, i)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', lineHeight: 1 }}
+                    >
+                      <FiX size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+      case 'number':
+        return (
+          <input
+            id={key}
+            type="number"
+            className="form-input"
+            value={value || ''}
+            onChange={(e) => handleDynamicFieldChange(key, parseFloat(e.target.value) || 0)}
+            min={min}
+            max={max}
+            required={required}
+          />
+        );
+
+      case 'email':
+        return (
+          <input
+            id={key}
+            type="email"
+            className="form-input"
+            value={value || ''}
+            onChange={(e) => handleDynamicFieldChange(key, e.target.value)}
+            required={required}
+            placeholder="email@ejemplo.com"
+          />
+        );
+
+      case 'textarea':
+        return (
+          <textarea
+            id={key}
+            className="form-input"
+            value={value || ''}
+            onChange={(e) => handleDynamicFieldChange(key, e.target.value)}
+            rows={3}
+            required={required}
+          />
+        );
+
+      case 'date':
+        return (
+          <input
+            id={key}
+            type="date"
+            className="form-input"
+            value={value || ''}
+            onChange={(e) => handleDynamicFieldChange(key, e.target.value)}
+            required={required}
+          />
+        );
+
+      case 'time':
+        return (
+          <input
+            id={key}
+            type="time"
+            className="form-input"
+            value={value || ''}
+            onChange={(e) => handleDynamicFieldChange(key, e.target.value)}
+            required={required}
+          />
+        );
+
+      default: // text
+        return (
+          <input
+            id={key}
+            type="text"
+            className="form-input"
+            value={value || ''}
+            onChange={(e) => handleDynamicFieldChange(key, e.target.value)}
+            required={required}
+          />
+        );
+    }
+  };
+
+  if (typesLoading) {
+    return (
+      <div className="fade-in">
+        <div className="dashboard-header">
+          <div><h2>Nuevo Informe</h2><p style={{ color: 'var(--text-secondary)' }}>Crea un nuevo informe de obra</p></div>
+        </div>
+        <SkeletonLoader type="card" count={2} />
+      </div>
+    );
+  }
 
   return (
     <div className="fade-in">
@@ -140,7 +304,7 @@ function CreateReport() {
             <input className="form-input" value={formData.titulo} onChange={(e) => setFormData({...formData, titulo: e.target.value})} placeholder="Título del informe" />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className="grid-2col">
             <div className="form-group">
               <label htmlFor="proyecto" className="form-label">Proyecto *</label>
               <input id="proyecto" className="form-input" value={formData.proyecto} onChange={(e) => setFormData({...formData, proyecto: e.target.value})} required />
@@ -180,26 +344,13 @@ function CreateReport() {
           {currentDynamicFields.length > 0 && (
             <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'var(--color-bg-light)', borderRadius: '8px' }}>
               <h4 style={{ marginBottom: '1rem' }}>Campos específicos: {reportTypes.find(t => t.value === reportType)?.label}</h4>
-              {currentDynamicFields.map(field => (
-                <div className="form-group" key={field.key}>
-                  <label htmlFor={field.key} className="form-label">{field.label}</label>
-                  {field.type === 'textarea' ? (
-                    <textarea
-                      id={field.key}
-                      className="form-input"
-                      value={dynamicFields[field.key] || ''}
-                      onChange={(e) => handleDynamicFieldChange(field.key, e.target.value)}
-                      rows={3}
-                    />
-                  ) : (
-                    <input
-                      id={field.key}
-                      type={field.type}
-                      className="form-input"
-                      value={dynamicFields[field.key] || ''}
-                      onChange={(e) => handleDynamicFieldChange(field.key, e.target.value)}
-                    />
-                  )}
+              {currentDynamicFields.map(([key, fieldDef]) => (
+                <div className="form-group" key={key}>
+                  <label htmlFor={key} className="form-label">
+                    {fieldDef.label || key.replace(/_/g, ' ')}
+                    {fieldDef.required && ' *'}
+                  </label>
+                  {renderDynamicField(key, fieldDef)}
                 </div>
               ))}
             </div>

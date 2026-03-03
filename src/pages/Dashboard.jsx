@@ -80,6 +80,8 @@ function Dashboard() {
   }
 
   const reports = summary?.reports || {};
+  const storage = summary?.storage || {};
+  const usersInfo = summary?.users || {};
   const reportsByStatus = summary?.reports_by_status || {};
   const freeTrial = summary?.free_trial || {};
   const recentReports = summary?.recent_reports || [];
@@ -87,6 +89,17 @@ function Dashboard() {
   const pendingReports = reportsByStatus.draft || 0;
   const completedReports = reportsByStatus.completed || 0;
   const completionRate = totalReports > 0 ? Math.round(completedReports / totalReports * 100) : 0;
+
+  // Usage calculations
+  const storageUsedMb = storage.used_mb || 0;
+  const storageMaxMb = storage.max_mb || 100;
+  const storagePercent = storageMaxMb > 0 ? Math.min(Math.round((storageUsedMb / storageMaxMb) * 100), 100) : 0;
+  const reportsThisMonth = reports.this_month || 0;
+  const reportsMaxMonth = reports.max_per_month || 0;
+  const reportsPercent = reportsMaxMonth > 0 ? Math.min(Math.round((reportsThisMonth / reportsMaxMonth) * 100), 100) : 0;
+  const usersCurrent = usersInfo.current || 0;
+  const usersMax = usersInfo.max || 0;
+  const usersPercent = usersMax > 0 ? Math.min(Math.round((usersCurrent / usersMax) * 100), 100) : 0;
 
   return (
     <motion.div
@@ -197,6 +210,68 @@ function Dashboard() {
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Resource Usage */}
+      {(storageMaxMb > 0 || reportsMaxMonth > 0 || usersMax > 0) && (
+        <motion.div
+          className="card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.15 }}
+          style={{ marginBottom: 'var(--spacing-lg)' }}
+        >
+          <div className="card-header">
+            <h3 className="card-title">Uso de Recursos</h3>
+          </div>
+          <div style={{ display: 'grid', gap: 'var(--spacing-md)' }}>
+            {storageMaxMb > 0 && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Almacenamiento</span>
+                  <span style={{ fontWeight: 600 }}>{storageUsedMb.toFixed(1)} / {storageMaxMb} MB</span>
+                </div>
+                <div style={{ height: '8px', background: 'var(--color-light-gray)', borderRadius: '4px' }}>
+                  <div style={{
+                    width: `${storagePercent}%`, height: '100%', borderRadius: '4px',
+                    background: storagePercent > 80 ? 'var(--color-danger)' : 'var(--color-tertiary)',
+                    transition: 'width 0.3s ease',
+                  }} />
+                </div>
+              </div>
+            )}
+            {reportsMaxMonth > 0 && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Informes este mes</span>
+                  <span style={{ fontWeight: 600 }}>{reportsThisMonth} / {reportsMaxMonth}</span>
+                </div>
+                <div style={{ height: '8px', background: 'var(--color-light-gray)', borderRadius: '4px' }}>
+                  <div style={{
+                    width: `${reportsPercent}%`, height: '100%', borderRadius: '4px',
+                    background: reportsPercent > 80 ? 'var(--color-danger)' : 'var(--color-primary)',
+                    transition: 'width 0.3s ease',
+                  }} />
+                </div>
+              </div>
+            )}
+            {usersMax > 0 && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Usuarios</span>
+                  <span style={{ fontWeight: 600 }}>{usersCurrent} / {usersMax}</span>
+                </div>
+                <div style={{ height: '8px', background: 'var(--color-light-gray)', borderRadius: '4px' }}>
+                  <div style={{
+                    width: `${usersPercent}%`, height: '100%', borderRadius: '4px',
+                    background: usersPercent > 80 ? 'var(--color-danger)' : 'var(--color-secondary)',
+                    transition: 'width 0.3s ease',
+                  }} />
+                </div>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
 
       {/* Recent Reports */}
       <motion.div

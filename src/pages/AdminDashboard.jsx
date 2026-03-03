@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { dashboardAPI, organizationsAPI, billingAPI } from '../services/api';
-import { FiUsers, FiFileText, FiDollarSign, FiActivity, FiTrash2, FiUserPlus, FiEdit } from 'react-icons/fi';
+import { FiUsers, FiFileText, FiDollarSign, FiActivity, FiTrash2, FiUserPlus, FiEdit, FiToggleLeft, FiToggleRight } from 'react-icons/fi';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 function AdminDashboard() {
   const [summary, setSummary] = useState(null);
@@ -76,12 +77,17 @@ function AdminDashboard() {
     return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(value);
   };
 
+  const toggleUserActive = async (userId, currentActive) => {
+    try {
+      await organizationsAPI.updateUser(userId, { is_active: !currentActive });
+      setUsers(users.map(u => u.id === userId ? { ...u, is_active: !currentActive } : u));
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error al cambiar estado del usuario');
+    }
+  };
+
   if (loading) {
-    return (
-      <div className="loading">
-        <div className="spinner"></div>
-      </div>
-    );
+    return <SkeletonLoader type="dashboard" />;
   }
 
   const reports = summary?.reports || {};
@@ -163,7 +169,7 @@ function AdminDashboard() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+      <div className="grid-2col">
         {/* Users Management */}
         <div className="card">
           <div className="card-header">
@@ -198,13 +204,17 @@ function AdminDashboard() {
 
           {/* Users List */}
           <div>
-            {users.map((u) => (
+            {users.map((u) => {
+              const isInactive = u.is_active === false;
+              return (
               <div key={u.id} style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.75rem',
                 padding: '0.75rem 0',
-                borderBottom: '1px solid var(--color-light-gray)'
+                borderBottom: '1px solid var(--color-light-gray)',
+                opacity: isInactive ? 0.5 : 1,
+                transition: 'opacity 0.2s',
               }}>
                 <div style={{
                   width: '36px', height: '36px', borderRadius: '50%',
@@ -215,7 +225,10 @@ function AdminDashboard() {
                   {(u.first_name?.[0] || '')}{(u.last_name?.[0] || '')}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 500 }}>{u.first_name} {u.last_name}</div>
+                  <div style={{ fontWeight: 500 }}>
+                    {u.first_name} {u.last_name}
+                    {isInactive && <span className="badge badge-warning" style={{ marginLeft: '0.5rem', fontSize: '0.6rem' }}>Inactivo</span>}
+                  </div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{u.email}</div>
                 </div>
                 {editingUser === u.id ? (
@@ -236,6 +249,14 @@ function AdminDashboard() {
                     {u.role === 'admin' ? 'Admin' : u.role === 'editor' ? 'Editor' : 'Visor'}
                   </span>
                 )}
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => toggleUserActive(u.id, u.is_active !== false)}
+                  title={isInactive ? 'Activar usuario' : 'Desactivar usuario'}
+                  style={{ color: isInactive ? 'var(--color-success)' : 'var(--color-warning)' }}
+                >
+                  {isInactive ? <FiToggleLeft /> : <FiToggleRight />}
+                </button>
                 <button className="btn btn-outline btn-sm" onClick={() => setEditingUser(u.id)} title="Cambiar rol">
                   <FiEdit />
                 </button>
@@ -243,7 +264,8 @@ function AdminDashboard() {
                   <FiTrash2 />
                 </button>
               </div>
-            ))}
+              );
+            })}
             {users.length === 0 && (
               <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '1rem' }}>
                 No hay usuarios en la organización

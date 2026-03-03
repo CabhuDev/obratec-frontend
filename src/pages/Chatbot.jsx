@@ -1,27 +1,37 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { chatbotAPI } from '../services/api';
-import { FiSend, FiMessageCircle, FiPlus, FiTrash2, FiClock, FiList, FiX } from 'react-icons/fi';
+import { FiSend, FiMessageCircle, FiPlus, FiTrash2, FiClock, FiList, FiX, FiSearch } from 'react-icons/fi';
+
+const PERSONALITIES = [
+  { value: 'patricia', label: 'Patricia', desc: 'IA especialista en construcción' },
+  { value: 'professional', label: 'Profesional', desc: 'Respuestas técnicas formales' },
+  { value: 'friendly', label: 'Amigable', desc: 'Tono cercano y accesible' },
+];
 
 function Chatbot() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [provider, setProvider] = useState(null);
+  const [providers, setProviders] = useState([]);
+  const [selectedProvider, setSelectedProvider] = useState(null);
   const [conversationId, setConversationId] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [showMobileConvs, setShowMobileConvs] = useState(false);
+  const [personality, setPersonality] = useState('patricia');
+  const [convSearch, setConvSearch] = useState('');
   const messagesEnd = useRef(null);
 
   useEffect(() => {
-    fetchProvider();
+    fetchProviders();
     fetchConversations();
   }, []);
 
-  const fetchProvider = async () => {
+  const fetchProviders = async () => {
     try {
       const res = await chatbotAPI.getProviders();
-      setProvider(res.data.default_provider);
+      setProviders(res.data.available_providers || []);
+      setSelectedProvider(res.data.default_provider);
     } catch (e) { console.error(e); }
   };
 
@@ -44,13 +54,24 @@ function Chatbot() {
         sources: m.sources,
       }));
       setMessages(msgs);
+      // Load personality from conversation
+      const conv = conversations.find(c => c.id === convId);
+      if (conv?.personality) setPersonality(conv.personality);
     } catch (e) { console.error(e); }
   };
 
-  const startNewConversation = () => {
-    setConversationId(null);
-    setMessages([]);
+  const startNewConversation = async () => {
     setShowMobileConvs(false);
+    try {
+      const res = await chatbotAPI.createConversation({ personality });
+      setConversationId(res.data.id);
+      setMessages([]);
+      fetchConversations();
+    } catch (e) {
+      // Fallback: just reset locally
+      setConversationId(null);
+      setMessages([]);
+    }
   };
 
   const deleteConversation = async (convId, e) => {
@@ -59,7 +80,10 @@ function Chatbot() {
     try {
       await chatbotAPI.deleteConversation(convId);
       setConversations(prev => prev.filter(c => c.id !== convId));
-      if (conversationId === convId) startNewConversation();
+      if (conversationId === convId) {
+        setConversationId(null);
+        setMessages([]);
+      }
     } catch (e) { console.error(e); }
   };
 
@@ -94,6 +118,17 @@ function Chatbot() {
     messagesEnd.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Filter conversations by search
+  const filteredConversations = useMemo(() => {
+    if (!convSearch.trim()) return conversations;
+    const q = convSearch.toLowerCase();
+    return conversations.filter(c =>
+      (c.title || c.titulo || 'Conversación').toLowerCase().includes(q)
+    );
+  }, [conversations, convSearch]);
+
+  const currentPersonalityInfo = PERSONALITIES.find(p => p.value === personality) || PERSONALITIES[0];
+
   const ConversationsPanel = () => (
     <div className="card chat-conversations-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ padding: '0.75rem', borderBottom: '1px solid var(--color-light-gray)', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -108,15 +143,28 @@ function Chatbot() {
           <FiX />
         </button>
       </div>
+
+      {/* Conversation search */}
+      <div style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--color-light-gray)', position: 'relative' }}>
+        <FiSearch style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', fontSize: '0.8rem' }} />
+        <input
+          className="form-input"
+          placeholder="Buscar conversaciones..."
+          value={convSearch}
+          onChange={(e) => setConvSearch(e.target.value)}
+          style={{ paddingLeft: '2rem', fontSize: '0.8rem', padding: '0.4rem 0.5rem 0.4rem 2rem' }}
+        />
+      </div>
+
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {loadingConversations ? (
           <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Cargando...</div>
-        ) : conversations.length === 0 ? (
+        ) : filteredConversations.length === 0 ? (
           <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            No hay conversaciones
+            {convSearch ? 'Sin resultados' : 'No hay conversaciones'}
           </div>
         ) : (
-          conversations.map(conv => (
+          filteredConversations.map(conv => (
             <div
               key={conv.id}
               onClick={() => loadConversation(conv.id)}
@@ -137,7 +185,7 @@ function Chatbot() {
                   fontSize: '0.85rem', fontWeight: 500,
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
                 }}>
-                  {conv.title || 'Conversación'}
+                  {conv.title || conv.titulo || 'Conversación'}
                 </div>
                 {conv.updated_at && (
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -171,7 +219,35 @@ function Chatbot() {
           <h2>Chat IA</h2>
           <p style={{ color: 'var(--text-secondary)' }}>Asistente virtual para construcción</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Personality selector */}
+          <select
+            className="form-input"
+            value={personality}
+            onChange={(e) => setPersonality(e.target.value)}
+            style={{ width: 'auto', fontSize: '0.85rem', padding: '0.35rem 0.5rem' }}
+            title="Personalidad del asistente"
+          >
+            {PERSONALITIES.map(p => (
+              <option key={p.value} value={p.value}>{p.label}</option>
+            ))}
+          </select>
+
+          {/* Provider selector */}
+          {providers.length > 1 && (
+            <select
+              className="form-input"
+              value={selectedProvider || ''}
+              onChange={(e) => setSelectedProvider(e.target.value)}
+              style={{ width: 'auto', fontSize: '0.85rem', padding: '0.35rem 0.5rem' }}
+              title="Proveedor IA"
+            >
+              {providers.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          )}
+
           {/* Mobile toggle button */}
           <button
             className="btn btn-outline chat-toggle-convs"
@@ -180,7 +256,9 @@ function Chatbot() {
           >
             <FiList /> <span>Conversaciones</span>
           </button>
-          {provider && <span className="badge badge-success chat-provider-badge">Conectado: {provider}</span>}
+          {selectedProvider && providers.length <= 1 && (
+            <span className="badge badge-success chat-provider-badge">Conectado: {selectedProvider}</span>
+          )}
         </div>
       </div>
 
@@ -197,12 +275,29 @@ function Chatbot() {
 
         {/* Chat Area */}
         <div className="card chat-area-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* Personality indicator */}
+          <div style={{
+            padding: '0.5rem 1rem',
+            borderBottom: '1px solid var(--color-light-gray)',
+            fontSize: '0.8rem',
+            color: 'var(--text-secondary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}>
+            <span style={{
+              width: '8px', height: '8px', borderRadius: '50%',
+              background: 'var(--color-success)', flexShrink: 0,
+            }} />
+            {currentPersonalityInfo.label} — {currentPersonalityInfo.desc}
+          </div>
+
           <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {messages.length === 0 ? (
               <div className="empty-state" style={{ margin: 'auto' }}>
                 <FiMessageCircle style={{ fontSize: '3rem', opacity: 0.5 }} />
-                <h3>Hola, soy Patricia</h3>
-                <p>Tu asistente especializado en construcción. Pregúntame cualquier cosa sobre tus proyectos.</p>
+                <h3>Hola, soy {currentPersonalityInfo.label}</h3>
+                <p>{currentPersonalityInfo.desc}. Pregúntame cualquier cosa sobre tus proyectos.</p>
               </div>
             ) : (
               messages.map((msg, i) => (

@@ -56,11 +56,14 @@ function Billing() {
   const [subscription, setSubscription] = useState(undefined); // undefined = not loaded
   const [invoices, setInvoices] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
+  const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [canceling, setCanceling] = useState(false);
   const [deletingPm, setDeletingPm] = useState(null);
   const [actionMsg, setActionMsg] = useState(null);
+  const [subscribing, setSubscribing] = useState(null);
+  const [upgradingAnnual, setUpgradingAnnual] = useState(false);
 
   useEffect(() => {
     fetchAll();
@@ -70,14 +73,16 @@ function Billing() {
     setLoading(true);
     setError(null);
     try {
-      const [subRes, invRes, pmRes] = await Promise.all([
+      const [subRes, invRes, pmRes, plansRes] = await Promise.all([
         billingAPI.getSubscription(),
         billingAPI.listInvoices(),
         billingAPI.getPaymentMethods(),
+        billingAPI.getPlans(),
       ]);
       setSubscription(subRes.data);
       setInvoices(invRes.data?.invoices || []);
       setPaymentMethods(pmRes.data?.payment_methods || []);
+      setPlans(plansRes.data?.plans || plansRes.data || []);
     } catch (err) {
       setError(err.response?.data?.detail || 'Error al cargar la información de facturación');
     } finally {
@@ -110,6 +115,36 @@ function Billing() {
       setActionMsg({ type: 'error', text: err.response?.data?.detail || 'Error al eliminar' });
     } finally {
       setDeletingPm(null);
+    }
+  };
+
+  const handleSubscribe = async (planId) => {
+    setSubscribing(planId);
+    try {
+      const res = await billingAPI.subscribe(planId, 'monthly');
+      if (res.data.checkout_url) {
+        window.location.href = res.data.checkout_url;
+      } else {
+        setActionMsg({ type: 'success', text: 'Suscripción actualizada' });
+        fetchAll();
+      }
+    } catch (err) {
+      setActionMsg({ type: 'error', text: err.response?.data?.detail || 'Error al suscribirse' });
+    } finally {
+      setSubscribing(null);
+    }
+  };
+
+  const handleUpgradeAnnual = async () => {
+    setUpgradingAnnual(true);
+    try {
+      await billingAPI.upgradeToAnnual();
+      setActionMsg({ type: 'success', text: 'Cambiado a facturación anual. Ahorra ~20%' });
+      fetchAll();
+    } catch (err) {
+      setActionMsg({ type: 'error', text: err.response?.data?.detail || 'Error al cambiar a anual' });
+    } finally {
+      setUpgradingAnnual(false);
     }
   };
 
@@ -262,6 +297,66 @@ function Billing() {
           </div>
         )}
       </motion.div>
+
+      {/* Cambiar Plan */}
+      {isAdmin && plans.length > 0 && (
+        <motion.div variants={itemVariants} className="card">
+          <div className="card-header">
+            <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FiPackage style={{ color: 'var(--color-primary)' }} />
+              Cambiar Plan
+            </h3>
+            {subscription && !subscription.cancel_at_period_end && (
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={handleUpgradeAnnual}
+                disabled={upgradingAnnual}
+              >
+                <FiRefreshCw /> {upgradingAnnual ? 'Cambiando...' : 'Cambiar a anual (~20% dto.)'}
+              </button>
+            )}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--spacing-md)' }}>
+            {plans.map(plan => {
+              const isCurrentPlan = subscription?.plan_id === plan.id;
+              return (
+                <div key={plan.id} style={{
+                  padding: 'var(--spacing-lg)',
+                  border: `2px solid ${isCurrentPlan ? 'var(--color-primary)' : 'var(--color-light-gray)'}`,
+                  borderRadius: 'var(--radius-lg)',
+                  background: isCurrentPlan ? 'rgba(247, 155, 114, 0.05)' : 'transparent',
+                }}>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>{plan.name}</div>
+                  <div style={{ fontWeight: 700, fontSize: '1.5rem', color: 'var(--color-secondary)' }}>
+                    {plan.price_monthly}€<span style={{ fontSize: '0.8rem', fontWeight: 400, color: 'var(--text-secondary)' }}>/mes</span>
+                  </div>
+                  {plan.features && plan.features.length > 0 && (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 'var(--spacing-sm) 0', fontSize: '0.8rem' }}>
+                      {plan.features.map((f, i) => (
+                        <li key={i} style={{ padding: '0.15rem 0', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <FiCheckCircle style={{ color: 'var(--color-tertiary)', fontSize: '0.7rem', flexShrink: 0 }} /> {f}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {isCurrentPlan ? (
+                    <span className="badge badge-info" style={{ width: '100%', display: 'block', textAlign: 'center' }}>Plan actual</span>
+                  ) : (
+                    <button
+                      className="btn btn-primary btn-sm"
+                      style={{ width: '100%' }}
+                      onClick={() => handleSubscribe(plan.id)}
+                      disabled={subscribing === plan.id}
+                    >
+                      {subscribing === plan.id ? 'Procesando...' : 'Suscribirse'}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
 
       {/* Métodos de pago */}
       <motion.div variants={itemVariants} className="card">

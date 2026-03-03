@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { FiPlus, FiSearch, FiTrash2, FiFile, FiUploadCloud, FiCheckCircle, FiAlertCircle, FiRefreshCw, FiX, FiFileText } from 'react-icons/fi';
+import { FiPlus, FiSearch, FiTrash2, FiFile, FiUploadCloud, FiCheckCircle, FiAlertCircle, FiRefreshCw, FiX, FiFileText, FiEdit, FiEye } from 'react-icons/fi';
 import { knowledgeAPI } from '../services/api';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 function KnowledgeBase() {
   const [documents, setDocuments] = useState([]);
@@ -17,6 +18,14 @@ function KnowledgeBase() {
   // Reindex state
   const [reindexing, setReindexing] = useState(false);
   const [reindexResult, setReindexResult] = useState(null);
+  const [reindexingDoc, setReindexingDoc] = useState(null);
+
+  // Preview/Edit state
+  const [previewDoc, setPreviewDoc] = useState(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [editingDoc, setEditingDoc] = useState(null);
+  const [editForm, setEditForm] = useState({ titulo: '', contenido: '' });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -51,7 +60,63 @@ function KnowledgeBase() {
     try {
       await knowledgeAPI.delete(id);
       fetchDocuments();
+      if (previewDoc?.id === id) setPreviewDoc(null);
     } catch (e) { console.error(e); }
+  };
+
+  // --- Preview ---
+  const openPreview = async (doc) => {
+    setLoadingPreview(true);
+    setPreviewDoc(null);
+    try {
+      const res = await knowledgeAPI.get(doc.id);
+      setPreviewDoc(res.data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  // --- Edit ---
+  const openEdit = async (doc) => {
+    setLoadingPreview(true);
+    try {
+      const res = await knowledgeAPI.get(doc.id);
+      setEditingDoc(res.data);
+      setEditForm({ titulo: res.data.titulo || '', contenido: res.data.contenido || '' });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!editingDoc) return;
+    setSavingEdit(true);
+    try {
+      await knowledgeAPI.update(editingDoc.id, editForm);
+      setEditingDoc(null);
+      fetchDocuments();
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Error al guardar');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // --- Per-document reindex ---
+  const reindexDocument = async (docId) => {
+    setReindexingDoc(docId);
+    try {
+      await knowledgeAPI.reindex(docId);
+      fetchDocuments();
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Error al reindexar');
+    } finally {
+      setReindexingDoc(null);
+    }
   };
 
   // --- File Upload ---
@@ -90,7 +155,7 @@ function KnowledgeBase() {
   const addFiles = (files) => {
     const newFiles = files.map(f => ({
       file: f,
-      status: 'pending', // pending | uploading | success | error
+      status: 'pending',
       progress: 0,
       result: null,
       error: null,
@@ -112,7 +177,6 @@ function KnowledgeBase() {
     for (let i = 0; i < uploadFiles.length; i++) {
       if (uploadFiles[i].status !== 'pending') continue;
 
-      // Mark as uploading
       setUploadFiles(prev => prev.map((f, idx) =>
         idx === i ? { ...f, status: 'uploading', progress: 0 } : f
       ));
@@ -143,7 +207,7 @@ function KnowledgeBase() {
     fetchDocuments();
   };
 
-  // --- Reindex ---
+  // --- Reindex All ---
   const reindexAll = async () => {
     setReindexing(true);
     setReindexResult(null);
@@ -198,6 +262,70 @@ function KnowledgeBase() {
         </div>
       )}
 
+      {/* Edit Modal */}
+      {editingDoc && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.5)',
+        }} onClick={() => setEditingDoc(null)}>
+          <div className="card" style={{ width: '100%', maxWidth: '600px', maxHeight: '80vh', overflow: 'auto', margin: '1rem' }}
+            onClick={(e) => e.stopPropagation()}>
+            <div className="card-header">
+              <h3 className="card-title">Editar Documento</h3>
+              <button onClick={() => setEditingDoc(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><FiX /></button>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Título</label>
+              <input className="form-input" value={editForm.titulo} onChange={(e) => setEditForm({ ...editForm, titulo: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Contenido</label>
+              <textarea className="form-input" rows={10} value={editForm.contenido} onChange={(e) => setEditForm({ ...editForm, contenido: e.target.value })} />
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button className="btn btn-outline" onClick={() => setEditingDoc(null)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={saveEdit} disabled={savingEdit}>
+                {savingEdit ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Panel */}
+      {(previewDoc || loadingPreview) && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.5)',
+        }} onClick={() => { setPreviewDoc(null); setLoadingPreview(false); }}>
+          <div className="card" style={{ width: '100%', maxWidth: '700px', maxHeight: '80vh', overflow: 'auto', margin: '1rem' }}
+            onClick={(e) => e.stopPropagation()}>
+            {loadingPreview ? (
+              <SkeletonLoader type="card" />
+            ) : previewDoc && (
+              <>
+                <div className="card-header">
+                  <h3 className="card-title">{previewDoc.titulo}</h3>
+                  <button onClick={() => setPreviewDoc(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><FiX /></button>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  <span className={`badge ${previewDoc.file_type === 'pdf' ? 'badge-danger' : 'badge-info'}`}>{previewDoc.file_type || 'texto'}</span>
+                  {previewDoc.processed_at && <span className="badge badge-success">Indexado</span>}
+                  <span>{new Date(previewDoc.created_at).toLocaleDateString('es-ES')}</span>
+                </div>
+                {previewDoc.contenido && (
+                  <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem', lineHeight: 1.6, maxHeight: '50vh', overflow: 'auto', padding: '1rem', background: 'var(--color-bg-light)', borderRadius: '8px' }}>
+                    {previewDoc.contenido}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="kb-tabs">
         <button
@@ -237,57 +365,111 @@ function KnowledgeBase() {
           </div>
 
           {loading ? (
-            <div className="loading"><div className="spinner"></div></div>
+            <SkeletonLoader type="card" count={3} />
           ) : documents.length > 0 ? (
-            <div className="table-container">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Documento</th>
-                    <th>Tipo</th>
-                    <th>Estado</th>
-                    <th>Fecha</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {documents.map((doc) => (
-                    <tr key={doc.id}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          {doc.file_type === 'pdf' ? (
-                            <FiFileText style={{ color: 'var(--color-danger)', flexShrink: 0 }} />
-                          ) : (
-                            <FiFile style={{ color: 'var(--color-info)', flexShrink: 0 }} />
-                          )}
-                          <span style={{ fontWeight: 500 }}>{doc.titulo}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`badge ${doc.file_type === 'pdf' ? 'badge-danger' : 'badge-info'}`}>
-                          {doc.file_type || 'texto'}
-                        </span>
-                      </td>
-                      <td>
-                        {doc.processed_at ? (
-                          <span className="badge badge-success"><FiCheckCircle style={{ marginRight: '0.25rem' }} /> Indexado</span>
-                        ) : (
-                          <span className="badge badge-warning"><FiAlertCircle style={{ marginRight: '0.25rem' }} /> Pendiente</span>
-                        )}
-                      </td>
-                      <td style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                        {new Date(doc.created_at).toLocaleDateString('es-ES')}
-                      </td>
-                      <td>
-                        <button className="btn btn-danger btn-sm" onClick={() => deleteDocument(doc.id)}>
-                          <FiTrash2 />
-                        </button>
-                      </td>
+            <>
+              {/* Desktop table */}
+              <div className="table-container kb-desktop-table">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Documento</th>
+                      <th>Tipo</th>
+                      <th>Estado</th>
+                      <th>Fecha</th>
+                      <th>Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {documents.map((doc) => (
+                      <tr key={doc.id}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            {doc.file_type === 'pdf' ? (
+                              <FiFileText style={{ color: 'var(--color-danger)', flexShrink: 0 }} />
+                            ) : (
+                              <FiFile style={{ color: 'var(--color-info)', flexShrink: 0 }} />
+                            )}
+                            <span style={{ fontWeight: 500, cursor: 'pointer', color: 'var(--color-secondary)' }} onClick={() => openPreview(doc)}>
+                              {doc.titulo}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`badge ${doc.file_type === 'pdf' ? 'badge-danger' : 'badge-info'}`}>
+                            {doc.file_type || 'texto'}
+                          </span>
+                        </td>
+                        <td>
+                          {doc.processed_at ? (
+                            <span className="badge badge-success"><FiCheckCircle style={{ marginRight: '0.25rem' }} /> Indexado</span>
+                          ) : (
+                            <span className="badge badge-warning"><FiAlertCircle style={{ marginRight: '0.25rem' }} /> Pendiente</span>
+                          )}
+                        </td>
+                        <td style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                          {new Date(doc.created_at).toLocaleDateString('es-ES')}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            <button className="btn btn-outline btn-sm" onClick={() => openPreview(doc)} title="Ver">
+                              <FiEye />
+                            </button>
+                            <button className="btn btn-outline btn-sm" onClick={() => openEdit(doc)} title="Editar">
+                              <FiEdit />
+                            </button>
+                            <button
+                              className="btn btn-outline btn-sm"
+                              onClick={() => reindexDocument(doc.id)}
+                              disabled={reindexingDoc === doc.id}
+                              title="Reindexar"
+                            >
+                              <FiRefreshCw className={reindexingDoc === doc.id ? 'spin-icon' : ''} />
+                            </button>
+                            <button className="btn btn-danger btn-sm" onClick={() => deleteDocument(doc.id)} title="Eliminar">
+                              <FiTrash2 />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile card list */}
+              <div className="kb-mobile-list">
+                {documents.map((doc) => (
+                  <div key={doc.id} style={{
+                    display: 'flex', flexDirection: 'column', gap: '0.5rem',
+                    padding: '1rem', borderBottom: '1px solid var(--color-light-gray)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {doc.file_type === 'pdf' ? (
+                        <FiFileText style={{ color: 'var(--color-danger)', flexShrink: 0 }} />
+                      ) : (
+                        <FiFile style={{ color: 'var(--color-info)', flexShrink: 0 }} />
+                      )}
+                      <span style={{ fontWeight: 500, flex: 1, cursor: 'pointer' }} onClick={() => openPreview(doc)}>
+                        {doc.titulo}
+                      </span>
+                      {doc.processed_at ? (
+                        <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>Indexado</span>
+                      ) : (
+                        <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>Pendiente</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <button className="btn btn-outline btn-sm" onClick={() => openEdit(doc)}><FiEdit /></button>
+                      <button className="btn btn-outline btn-sm" onClick={() => reindexDocument(doc.id)} disabled={reindexingDoc === doc.id}>
+                        <FiRefreshCw className={reindexingDoc === doc.id ? 'spin-icon' : ''} />
+                      </button>
+                      <button className="btn btn-danger btn-sm" onClick={() => deleteDocument(doc.id)}><FiTrash2 /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           ) : (
             <div className="empty-state">
               <div className="empty-state-icon"><FiFile /></div>
@@ -363,7 +545,6 @@ function KnowledgeBase() {
                         </div>
                       </div>
 
-                      {/* Status icon */}
                       {item.status === 'success' && <FiCheckCircle style={{ color: 'var(--color-success)', fontSize: '1.25rem', flexShrink: 0 }} />}
                       {item.status === 'error' && <FiAlertCircle style={{ color: 'var(--color-danger)', fontSize: '1.25rem', flexShrink: 0 }} />}
                       {item.status === 'pending' && (
@@ -376,7 +557,6 @@ function KnowledgeBase() {
                       )}
                     </div>
 
-                    {/* Progress bar */}
                     {item.status === 'uploading' && (
                       <div className="progress" style={{ marginTop: '0.5rem' }}>
                         <div className="progress-bar" style={{ width: `${item.progress}%` }}></div>
@@ -386,7 +566,6 @@ function KnowledgeBase() {
                 ))}
               </div>
 
-              {/* Upload button */}
               {pendingCount > 0 && (
                 <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                   <button
@@ -400,7 +579,6 @@ function KnowledgeBase() {
                 </div>
               )}
 
-              {/* Summary after upload */}
               {successCount > 0 && pendingCount === 0 && !uploading && (
                 <div className="kb-upload-summary">
                   <FiCheckCircle style={{ color: 'var(--color-success)', fontSize: '1.25rem' }} />

@@ -95,11 +95,12 @@ export const reportsAPI = {
 
 // Chatbot API
 export const chatbotAPI = {
-  chat: (message, conversationId = null, useRag = true) => 
+  chat: (message, conversationId = null, useRag = true) =>
     api.post('/chatbot/chat', { message, conversation_id: conversationId, use_rag: useRag }),
   listConversations: () => api.get('/chatbot/conversations'),
   getConversation: (id) => api.get(`/chatbot/conversations/${id}`),
   getMessages: (id) => api.get(`/chatbot/conversations/${id}/messages`),
+  createConversation: (data) => api.post('/chatbot/conversations', data),
   deleteConversation: (id) => api.delete(`/chatbot/conversations/${id}`),
   getProviders: () => api.get('/chatbot/providers'),
 };
