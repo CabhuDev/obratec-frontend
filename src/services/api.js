@@ -9,12 +9,17 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token
+// Request interceptor: auth token + FormData boundary fix
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // For FormData, remove Content-Type so the browser sets it
+    // automatically with the correct multipart boundary.
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
     }
     return config;
   },
@@ -76,14 +81,8 @@ export const reportsAPI = {
   update: (id, data) => api.put(`/reports/${id}`, data),
   delete: (id) => api.delete(`/reports/${id}`),
   generatePDF: (id) => api.post(`/reports/${id}/generate-pdf`),
-  uploadPhoto: (id, formData) => 
-    api.post(`/reports/${id}/photos`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
-  uploadAudio: (id, formData) =>
-    api.post(`/reports/${id}/audio`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+  uploadPhoto: (id, formData) => api.post(`/reports/${id}/photos`, formData),
+  uploadAudio: (id, formData) => api.post(`/reports/${id}/audio`, formData),
   getTypes: () => api.get('/reports/types'),
   publish: (id) => api.post(`/reports/${id}/publish`),
   getWorkflowStatus: (id) => api.get(`/reports/${id}/workflow-status`),
@@ -113,10 +112,7 @@ export const organizationsAPI = {
   inviteUser: (data) => api.post('/organizations/me/users', data),
   updateUser: (userId, data) => api.put(`/organizations/me/users/${userId}`, data),
   deleteUser: (userId) => api.delete(`/organizations/me/users/${userId}`),
-  uploadLogo: (formData) =>
-    api.post('/organizations/me/logo', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+  uploadLogo: (formData) => api.post('/organizations/me/logo', formData),
   deleteLogo: () => api.delete('/organizations/me/logo'),
 };
 
@@ -128,15 +124,9 @@ export const knowledgeAPI = {
   update: (id, data) => api.put(`/knowledge/${id}`, data),
   delete: (id) => api.delete(`/knowledge/${id}`),
   upload: (formData, onProgress) =>
-    api.post('/knowledge/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      onUploadProgress: onProgress,
-    }),
+    api.post('/knowledge/upload', formData, { onUploadProgress: onProgress }),
   uploadBulk: (formData, onProgress) =>
-    api.post('/knowledge/upload-bulk', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      onUploadProgress: onProgress,
-    }),
+    api.post('/knowledge/upload-bulk', formData, { onUploadProgress: onProgress }),
   reindex: (id) => api.post(`/knowledge/${id}/reindex`),
   reindexAll: () => api.post('/knowledge/reindex-all'),
 };

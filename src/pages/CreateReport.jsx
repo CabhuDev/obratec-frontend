@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { reportsAPI, organizationsAPI } from '../services/api';
-import { FiPlus, FiAlertCircle, FiX } from 'react-icons/fi';
+import { FiPlus, FiAlertCircle, FiX, FiInfo, FiCheck, FiArrowRight, FiCamera, FiMic } from 'react-icons/fi';
 import SkeletonLoader from '../components/SkeletonLoader';
+import MediaUploadSection from '../components/MediaUploadSection';
 
 function CreateReport() {
   const navigate = useNavigate();
@@ -21,6 +22,10 @@ function CreateReport() {
   const [fieldDefinitions, setFieldDefinitions] = useState({});
   const [typesLoading, setTypesLoading] = useState(true);
 
+  // Phase 2: report created, now add media
+  const [createdReport, setCreatedReport] = useState(null);
+  const [toast, setToast] = useState(null);
+
   useEffect(() => {
     organizationsAPI.get().then(res => {
       setOrgHasLogo(!!res.data.logo_url);
@@ -38,7 +43,6 @@ function CreateReport() {
           setReportType(data.types[0].value);
         }
       } catch (e) {
-        // Fallback to basic types if endpoint fails
         setReportTypes([
           { value: 'obra', label: 'Obra' },
           { value: 'visita', label: 'Visita' },
@@ -63,7 +67,6 @@ function CreateReport() {
     setDynamicFields(prev => ({ ...prev, [key]: value }));
   };
 
-  // Handle array field (chips/tags)
   const handleArrayFieldAdd = (key, value) => {
     if (!value.trim()) return;
     const current = dynamicFields[key] || [];
@@ -90,7 +93,8 @@ function CreateReport() {
         body.dynamic_fields = dynamicFields;
       }
       const res = await reportsAPI.create(body);
-      navigate(`/app/reports/${res.data.id}`);
+      // Stay on page: enter phase 2 (media upload)
+      setCreatedReport({ ...res.data, photos: res.data.photos || [], audios: res.data.audios || [] });
     } catch (e) {
       if (e.response?.status === 403) {
         setError('Límite de informes alcanzado. Mejora tu plan para crear más informes.');
@@ -102,7 +106,14 @@ function CreateReport() {
     }
   };
 
-  // Get dynamic field definitions for current report type
+  const refreshCreatedReport = async () => {
+    if (!createdReport?.id) return;
+    try {
+      const res = await reportsAPI.get(createdReport.id);
+      setCreatedReport(res.data);
+    } catch {}
+  };
+
   const currentFieldDefs = fieldDefinitions[reportType] || {};
   const currentDynamicFields = Object.entries(currentFieldDefs);
 
@@ -240,7 +251,7 @@ function CreateReport() {
           />
         );
 
-      default: // text
+      default:
         return (
           <input
             id={key}
@@ -265,6 +276,86 @@ function CreateReport() {
     );
   }
 
+  // ─── Phase 2: Borrador creado, añadir multimedia ──────────────────────────
+  if (createdReport) {
+    return (
+      <div className="fade-in">
+        <div className="dashboard-header">
+          <div>
+            <h2>Nuevo Informe</h2>
+            <p style={{ color: 'var(--text-secondary)' }}>{createdReport.titulo || createdReport.proyecto}</p>
+          </div>
+        </div>
+
+        {/* Toast */}
+        {toast && (
+          <div style={{
+            padding: '0.75rem 1rem', marginBottom: '1rem', borderRadius: '8px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
+            background: toast.type === 'success' ? 'rgba(59, 140, 136, 0.1)' : toast.type === 'error' ? 'rgba(231, 76, 60, 0.1)' : 'rgba(52, 152, 219, 0.1)',
+            border: `1px solid ${toast.type === 'success' ? 'rgba(59, 140, 136, 0.3)' : toast.type === 'error' ? 'rgba(231, 76, 60, 0.3)' : 'rgba(52, 152, 219, 0.3)'}`,
+            color: toast.type === 'success' ? 'var(--color-tertiary)' : toast.type === 'error' ? 'var(--color-danger)' : 'var(--color-info, #3498db)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {toast.type === 'success' && <FiCheck />}
+              {toast.type === 'error' && <FiX />}
+              <span style={{ fontWeight: 500 }}>{toast.message}</span>
+            </div>
+            <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+              <FiX size={16} />
+            </button>
+          </div>
+        )}
+
+        {/* Confirmación borrador */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.75rem',
+          padding: '1rem 1.25rem', marginBottom: '1.5rem',
+          background: 'rgba(59, 140, 136, 0.08)',
+          border: '1px solid rgba(59, 140, 136, 0.25)',
+          borderRadius: '10px',
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%',
+            background: 'var(--color-tertiary)', color: 'white',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <FiCheck size={18} />
+          </div>
+          <div>
+            <p style={{ margin: 0, fontWeight: 600, color: 'var(--color-tertiary)' }}>Borrador creado correctamente</p>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              Ahora puedes adjuntar <strong>fotos</strong> y <strong>grabaciones de voz</strong> antes de finalizar el informe.
+            </p>
+          </div>
+        </div>
+
+        {/* Secciones de multimedia */}
+        <MediaUploadSection
+          reportId={createdReport.id}
+          photos={createdReport.photos || []}
+          audios={createdReport.audios || []}
+          onRefresh={refreshCreatedReport}
+          showToast={setToast}
+        />
+
+        {/* CTA final */}
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-primary"
+            onClick={() => navigate(`/app/reports/${createdReport.id}`)}
+          >
+            Ver informe completo <FiArrowRight />
+          </button>
+          <Link to="/app/reports" className="btn btn-outline">
+            Ir a mis informes
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Phase 1: Formulario de creación ─────────────────────────────────────
   return (
     <div className="fade-in">
       <div className="dashboard-header">
@@ -272,6 +363,29 @@ function CreateReport() {
       </div>
 
       <div className="card">
+        {/* Hint banner */}
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
+          padding: '0.875rem 1rem',
+          background: 'rgba(247, 155, 114, 0.08)',
+          border: '1px solid rgba(247, 155, 114, 0.3)',
+          borderRadius: '8px',
+          marginBottom: '1.5rem',
+        }}>
+          <FiInfo style={{ color: 'var(--primary)', flexShrink: 0, marginTop: '2px' }} size={16} />
+          <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+            <strong style={{ color: 'var(--primary)' }}>Tip:</strong> Rellena los datos del informe y haz clic en <em>Crear borrador</em>.
+            Después podrás añadir{' '}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontWeight: 600 }}>
+              <FiCamera size={13} /> fotos
+            </span>{' '}y{' '}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontWeight: 600 }}>
+              <FiMic size={13} /> grabaciones de voz
+            </span>{' '}
+            directamente en esta misma página, sin salir del flujo de creación.
+          </div>
+        </div>
+
         {error && (
           <div style={{
             background: 'rgba(231, 76, 60, 0.1)',
@@ -373,7 +487,7 @@ function CreateReport() {
 
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Creando...' : 'Crear Informe'}
+              {loading ? 'Creando...' : 'Crear borrador'}
             </button>
             <button type="button" className="btn btn-outline" onClick={() => navigate('/app/reports')}>
               Cancelar
