@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { reportsAPI, organizationsAPI, mediaUrl } from '../services/api';
 import { FiDownload, FiTrash2, FiEdit, FiArrowLeft, FiSend, FiX, FiCheck, FiAlertTriangle, FiPlus } from 'react-icons/fi';
@@ -15,7 +15,9 @@ function ReportDetail() {
   const [editData, setEditData] = useState({});
   const [editDynamicFields, setEditDynamicFields] = useState({});
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [workflow, setWorkflow] = useState(null);
+  const aiPollControllerRef = useRef(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [toast, setToast] = useState(null);
   const [orgHasLogo, setOrgHasLogo] = useState(false);
@@ -49,14 +51,21 @@ function ReportDetail() {
 
   useEffect(() => {
     if (hasUnanalyzedPhotos || hasUntranscribedAudio) {
-      const interval = setInterval(() => { fetchReport(true); }, 10000);
-      return () => clearInterval(interval);
+      const interval = setInterval(() => {
+        aiPollControllerRef.current?.abort();
+        aiPollControllerRef.current = new AbortController();
+        fetchReport(true, aiPollControllerRef.current.signal);
+      }, 10000);
+      return () => {
+        clearInterval(interval);
+        aiPollControllerRef.current?.abort();
+      };
     }
   }, [hasUnanalyzedPhotos, hasUntranscribedAudio]);
 
-  const fetchReport = async (silent = false) => {
+  const fetchReport = async (silent = false, signal = null) => {
     try {
-      const res = await reportsAPI.get(id);
+      const res = await reportsAPI.get(id, signal);
       setReport(res.data);
       if (!silent) {
         setEditData({
@@ -70,8 +79,10 @@ function ReportDetail() {
         });
         setEditDynamicFields(res.data.dynamic_fields || {});
       }
-    } catch (e) { console.error(e); }
-    finally { if (!silent) setLoading(false); }
+    } catch (e) {
+      if (e.name === 'CanceledError' || e.code === 'ERR_CANCELED') return;
+      console.error(e);
+    } finally { if (!silent) setLoading(false); }
   };
 
   const pollWorkflow = async () => {
@@ -104,10 +115,14 @@ function ReportDetail() {
 
   const deleteReport = async () => {
     if (!confirm('¿Eliminar informe?')) return;
+    setDeleting(true);
     try {
       await reportsAPI.delete(id);
       navigate('/app/reports');
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      setDeleting(false);
+    }
   };
 
   const publishReport = async () => {
@@ -121,15 +136,25 @@ function ReportDetail() {
 
   const saveEdit = async () => {
     setSaving(true);
+    const originalReport = report;
+    // Optimistic: aplica los cambios inmediatamente y cierra el editor
+    setReport(prev => ({
+      ...prev,
+      ...editData,
+      dynamic_fields: Object.keys(editDynamicFields).length > 0 ? editDynamicFields : prev.dynamic_fields,
+    }));
+    setEditing(false);
     try {
       const payload = { ...editData };
       if (Object.keys(editDynamicFields).length > 0) {
         payload.dynamic_fields = editDynamicFields;
       }
       await reportsAPI.update(id, payload);
-      setEditing(false);
-      fetchReport();
+      fetchReport(true); // sincroniza con el servidor silenciosamente
     } catch (e) {
+      // Rollback: restaura el estado original y reabre el editor
+      setReport(originalReport);
+      setEditing(true);
       alert(e.response?.data?.detail || 'Error al guardar');
     } finally {
       setSaving(false);
@@ -249,7 +274,7 @@ function ReportDetail() {
           <button className="btn btn-primary" onClick={generatePDF} disabled={generatingPdf}>
             {generatingPdf ? 'Generando...' : <><FiDownload /> Generar PDF</>}
           </button>
-          <button className="btn btn-danger" onClick={deleteReport}><FiTrash2 /></button>
+          <button className="btn btn-danger" onClick={deleteReport} disabled={deleting}>{deleting ? 'Eliminando...' : <FiTrash2 />}</button>
         </div>
       </div>
 

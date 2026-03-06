@@ -76,7 +76,7 @@ export const authAPI = {
 // Reports API
 export const reportsAPI = {
   list: (params) => api.get('/reports/', { params }),
-  get: (id) => api.get(`/reports/${id}`),
+  get: (id, signal) => api.get(`/reports/${id}`, signal ? { signal } : undefined),
   create: (data) => api.post('/reports/', data),
   update: (id, data) => api.put(`/reports/${id}`, data),
   delete: (id) => api.delete(`/reports/${id}`),

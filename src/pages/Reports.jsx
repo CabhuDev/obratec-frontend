@@ -30,6 +30,7 @@ const projectColor = (name = '') => {
 function Reports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [view, setView] = useState(
@@ -59,11 +60,16 @@ function Reports() {
 
   const deleteReport = async (id) => {
     if (!confirm('¿Estás seguro de que quieres eliminar este informe?')) return;
+    const snapshot = reports;
+    setReports(prev => prev.filter(r => r.id !== id));
+    setDeletingId(id);
     try {
       await reportsAPI.delete(id);
-      fetchReports();
     } catch (error) {
+      setReports(snapshot);
       console.error('Error deleting report:', error);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -242,7 +248,7 @@ function Reports() {
                         <Link to={`/app/reports/${report.id}`} className="btn btn-outline btn-sm">
                           <FiEye />
                         </Link>
-                        <button className="btn btn-danger btn-sm" onClick={() => deleteReport(report.id)}>
+                        <button className="btn btn-danger btn-sm" onClick={() => deleteReport(report.id)} disabled={deletingId === report.id}>
                           <FiTrash2 />
                         </button>
                       </div>

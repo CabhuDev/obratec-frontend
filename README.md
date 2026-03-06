@@ -1,6 +1,6 @@
-# 🎨 OBRATEC Frontend v2.0
+# OBRATEC Frontend v2.5
 
-> Modern React SPA with professional landing page and AI-powered construction management
+> React SPA for construction site report management with AI features
 
 [![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.0-646CFF?logo=vite)](https://vitejs.dev/)
@@ -8,56 +8,63 @@
 
 ---
 
-## 📋 Descripción
+## Descripción
 
-Frontend moderno para OBRATEC construido con React 18 y Vite 5. Incluye:
-- 🌐 **Landing page** estilo SaaS moderno
-- 📱 **Mobile-first** con bottom navigation
-- ⚡ **Skeleton loading** para UX elegante
-- 🎭 **Animaciones** con Framer Motion
-- 🎨 **Sistema de diseño** consistente
+Frontend construido con React 18 y Vite 5:
+- Landing page estilo SaaS
+- Mobile-first con bottom navigation
+- Skeleton loading (nunca spinners)
+- Animaciones Framer Motion
+- CSS variables y grid utilities
 
 ---
 
-## ✨ Características v2.0
+## Características
 
-### 🆕 Nuevo Diseño
-- ✅ Landing page moderna con hero, features, pricing, testimonials
-- ✅ Navegación móvil bottom nav (inspirada en apps nativas)
-- ✅ Skeleton loaders (en lugar de spinners)
-- ✅ Animaciones Framer Motion fluidas
-- ✅ 100% responsive (desktop, tablet, mobile)
-
-### 🔐 Autenticación
-- JWT con refresh tokens
+### Autenticación
+- JWT con refresh tokens (auto-refresh en 401 vía Axios interceptor)
 - Login/Register con validación
-- Protected routes
+- Protected routes (`/app/*`)
 - AuthContext global
 
-### 📊 Dashboard
-- Estadísticas de usuario/admin
-- Charts con Chart.js
-- Vista de informes recientes
-- Navegación por roles
+### Dashboard
+- Hero card con saludo personalizado (buenos días/tardes/noches) y blueprint pattern SVG
+- Strip de estadísticas (informes, fotos, audios, almacenamiento)
+- Barras de uso de recursos (almacenamiento, informes/mes, usuarios) — rojas al superar 80%
+- Trial countdown banner
+- Navegación por roles (admin/editor/viewer)
 
-### 💬 Chatbot IA
-- Chat con Patricia (experta construcción)
-- Integración OpenAI + Gemini
-- Historial de conversaciones
-- Markdown rendering
+### Informes
+- Vista galería con tarjetas proporción A4 (estilo estantería de planos)
+- Portada dinámica: primera foto del informe o initiales del proyecto
+- Tipos dinámicos desde `reportsAPI.getTypes()` — sin config hardcodeada
+- Campos: `text`, `textarea`, `number`, `date`, `time`, `email`, `select`, `array` (chips)
+- Fotos: `ai_description` colapsible, `tags_ai` badges, safety risks. Polling silencioso si pendiente.
+- Audio: resumen IA destacado, transcripción expandible, `palabras_clave` badges, sentimiento coloreado
+- Workflow de publicación: barra de progreso de 6 pasos con estado por paso
 
-### 📄 Gestión de Informes
-- Crear/editar informes
-- Upload multimedia (fotos + audio)
-- Transcripción automática de voz
-- Generación de PDFs
+### Chatbot IA
+- Patricia (experta construcción), Profesional, Amigable — selector de personalidad
+- RAG con informes del usuario (Patricia conoce los proyectos reales)
+- Búsqueda de conversaciones
+- Selector de proveedor si hay más de uno
+- Historial de conversaciones persistente
 
-### 💳 Billing & Suscripciones
-- Planes con pricing cards (Founders, Básico, Profesional, Enterprise)
+### Knowledge Base
+- Modal de edición por documento
+- Modal de previsualización
+- Reindexado individual por documento
+- Vista responsive: tabla en desktop, tarjetas en mobile
+
+### Billing & Suscripciones
+- Pricing cards (Founders, Básico, Profesional, Enterprise) desde API
 - Toggle mensual/anual en Settings
-- Trial countdown banner en Dashboard
-- Página de facturación con facturas y métodos de pago
+- Upgrade a anual desde Settings
 - Nombre del plan activo en suscripción
+
+### Admin
+- Toggle activar/desactivar usuario por fila
+- SkeletonLoader en carga inicial
 
 ---
 
@@ -134,30 +141,41 @@ frontend/
 
 ---
 
-## 🎨 Paleta de Colores
+## Paleta de Colores
 
-OBRATEC usa una paleta moderna y profesional:
+Nunca usar colores hardcodeados — siempre CSS variables:
 
 ```css
 :root {
-  /* Primarios */
   --primary: #F79B72;      /* Naranja cálido - CTAs */
   --secondary: #2A4759;    /* Azul oscuro - Headers */
   --tertiary: #3B8C88;     /* Verde - Success */
 
-  /* Neutrales */
   --bg-light: #F8F9FA;
   --bg-dark: #1A1A1A;
   --text-dark: #2C3E50;
   --text-light: #6C757D;
 
-  /* Estados */
   --success: #28A745;
   --warning: #FFC107;
   --danger: #DC3545;
   --info: #17A2B8;
 }
 ```
+
+## CSS Grid Utilities
+
+Definidas en `src/index.css` — usar en lugar de estilos inline:
+
+| Clase | Grid | Colapsa en mobile |
+|-------|------|-------------------|
+| `.grid-2col` | `1fr 1fr` | Sí (≤768px) |
+| `.grid-sidebar` | `240px 1fr` | Sí (≤768px) |
+| `.grid-main` | `2fr 1fr` | Sí (≤768px) |
+| `.kb-desktop-table` | visible en desktop | oculto en mobile |
+| `.kb-mobile-list` | oculto en desktop | visible en mobile |
+
+`@keyframes pulse` disponible para indicadores "Analizando..." / "Transcribiendo...".
 
 ---
 
@@ -275,9 +293,9 @@ await api.post("/chatbot/chat", { message });
 
 ---
 
-## 🎭 Animaciones
+## Animaciones
 
-Usando Framer Motion:
+Entrada estándar (obligatoria en todos los componentes):
 
 ```jsx
 import { motion } from "framer-motion";
@@ -285,17 +303,11 @@ import { motion } from "framer-motion";
 <motion.div
   initial={{ opacity: 0, y: 20 }}
   animate={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.5 }}
+  transition={{ duration: 0.3 }}
 >
   Contenido
 </motion.div>
 ```
-
-**Variantes implementadas:**
-- Fade in/out
-- Slide up/down
-- Stagger children
-- Scale hover
 
 ---
 
@@ -409,26 +421,31 @@ Ver [CONTRIBUTING.md](../CONTRIBUTING.md) para guías de contribución.
 
 ---
 
-## 📝 Changelog
+## Changelog
+
+### v2.5.0 (2026-03-05)
+- Dashboard.jsx: hero card con saludo + blueprint pattern + strip estadísticas
+- Reports.jsx: galería A4 con portada dinámica
+- CreateReport.jsx: tipos dinámicos desde `reportsAPI.getTypes()`, campos array/select/etc.
+- ReportDetail.jsx: AI photo analysis, audio transcription, dynamic fields editables, polling silencioso
+- KnowledgeBase.jsx: modal edición, previsualización, reindexado individual, responsive
+- Chatbot.jsx: selector de personalidad, Patricia conoce informes reales del usuario
+- AdminDashboard.jsx: toggle activar/desactivar usuario
+- CSS utilities: `.grid-2col`, `.grid-sidebar`, `.grid-main`, `.kb-desktop-table/mobile-list`, `@keyframes pulse`
+- api.js: `chatbotAPI.createConversation({ personality })`
 
 ### v2.4.0 (2026-03-01)
-- 🐛 Fix nombre del plan en Settings > Suscripción (mostraba UUID en vez del nombre)
-- 🐛 Fix nombre del plan en pestaña de facturación
+- Fix nombre del plan en Settings > Suscripción (mostraba UUID)
+- Upgrade a facturación anual conectado
 
 ### v2.3.0 (2026-02-27)
-- ✨ Plan Founders en Landing (badge púrpura, invite-only)
-- ✨ Toggle mensual/anual en Settings
-- ✨ Trial countdown banner en Dashboard
-- ✨ Plan cards con features y trial_days en Settings
+- Plan Founders en Landing
+- Toggle mensual/anual en Settings
+- Trial countdown banner en Dashboard
 
 ### v2.0.0 (2024-02-16)
-- ✨ Nueva landing page moderna
-- ✨ Bottom navigation móvil
-- ✨ Skeleton loading system
-- ✨ Animaciones Framer Motion
-- ✨ Sistema de diseño completo
-- ♻️ Refactor de rutas (`/` → Landing, `/app/*` → App)
-- 🎨 CSS mejorado con variables y utilidades
+- Landing page moderna, bottom nav, skeleton loaders, Framer Motion
+- Rutas `/` → Landing, `/app/*` → App protegida
 
 ---
 
@@ -442,4 +459,4 @@ Ver [CONTRIBUTING.md](../CONTRIBUTING.md) para guías de contribución.
 
 **Desarrollado con ❤️ por el equipo OBRATEC**
 
-v2.0.0 | 2024-02-16
+v2.5.0 | 2026-03-05
